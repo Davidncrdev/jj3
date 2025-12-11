@@ -11,5 +11,8 @@
       "src": "/(.*)",
       "dest": "backend/src/app.js"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }

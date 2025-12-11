@@ -511,6 +511,8 @@ app.get('/', (req, res) => {
   `);
 });
 
+module.exports = app;
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`
