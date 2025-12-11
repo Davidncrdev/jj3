@@ -1,20 +1,19 @@
-// sistema-simple.js - Versión minimalista y funcional
+// app.js - Versión corregida para Vercel
 const express = require('express');
 const { Client } = require('pg');
 
 const app = express();
-const PORT = 3000;
 
 // Middleware básico
 app.use(express.json());
 
-// Conexión a Neon
+// ⚠️ IMPORTANTE: Usa variable de entorno para la conexión
 const neonConfig = {
-  connectionString: 'postgresql://neondb_owner:npg_N3dFkaV2cyRi@ep-bold-tooth-a4681eud-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require',
+  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_N3dFkaV2cyRi@ep-bold-tooth-a4681eud-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require',
   ssl: { rejectUnauthorized: false }
 };
 
-// 1. PRIMERO: Verificar columnas reales de tu tabla
+// 1. Verificar columnas
 app.get('/api/columnas', async (req, res) => {
   const client = new Client(neonConfig);
   try {
@@ -33,7 +32,7 @@ app.get('/api/columnas', async (req, res) => {
   }
 });
 
-// 2. ENDPOINT PRINCIPAL con columnas reales
+// 2. Listar pacientes
 app.get('/api/pacientes', async (req, res) => {
   const client = new Client(neonConfig);
   try {
@@ -42,12 +41,10 @@ app.get('/api/pacientes', async (req, res) => {
     
     await client.connect();
     
-    // Construir consulta dinámica basada en columnas reales
     let query = `SELECT * FROM pacientes`;
     const params = [];
     
     if (buscar) {
-      // Buscar en varias columnas comunes
       query += ` WHERE (
         CAST(pac_id AS TEXT) ILIKE $1 OR
         pac_nombre ILIKE $1 OR 
@@ -58,12 +55,10 @@ app.get('/api/pacientes', async (req, res) => {
       params.push(`%${buscar}%`);
     }
     
-    // Contar total
     const countQuery = `SELECT COUNT(*) as total FROM (${query}) as subquery`;
     const countResult = await client.query(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
     
-    // Añadir paginación
     query += ` ORDER BY pac_id LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(parseInt(limite), offset);
     
@@ -88,7 +83,7 @@ app.get('/api/pacientes', async (req, res) => {
   }
 });
 
-// 3. DETALLE DE PACIENTE SIMPLE
+// 3. Detalle de paciente
 app.get('/api/paciente/:id', async (req, res) => {
   const client = new Client(neonConfig);
   try {
@@ -120,7 +115,7 @@ app.get('/api/paciente/:id', async (req, res) => {
   }
 });
 
-// 4. ESTADÍSTICAS SIMPLES
+// 4. Estadísticas
 app.get('/api/estadisticas', async (req, res) => {
   const client = new Client(neonConfig);
   try {
@@ -148,7 +143,7 @@ app.get('/api/estadisticas', async (req, res) => {
   }
 });
 
-// 5. INTERFAZ HTML SIMPLE Y FUNCIONAL
+// 5. Interfaz HTML
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -172,13 +167,11 @@ app.get('/', (req, res) => {
     </head>
     <body>
         <div class="container">
-            <!-- Header -->
             <div class="header">
                 <h1><i class="fas fa-users me-2"></i>Visualizador de Pacientes</h1>
-                <p class="mb-0">Base de datos SQL SERVER - Ne</p>
+                <p class="mb-0">Base de datos PostgreSQL - Neon</p>
             </div>
             
-            <!-- Search -->
             <div class="search-box">
                 <div class="row">
                     <div class="col-md-8">
@@ -193,7 +186,6 @@ app.get('/', (req, res) => {
                 </div>
             </div>
             
-            <!-- Stats -->
             <div class="row stats">
                 <div class="col-md-4">
                     <div class="card">
@@ -221,7 +213,6 @@ app.get('/', (req, res) => {
                 </div>
             </div>
             
-            <!-- Table -->
             <div class="table-container">
                 <div class="table-responsive">
                     <table class="table table-hover">
@@ -247,7 +238,6 @@ app.get('/', (req, res) => {
                     </table>
                 </div>
                 
-                <!-- Pagination -->
                 <div class="p-3 border-top">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -266,7 +256,6 @@ app.get('/', (req, res) => {
                 </div>
             </div>
             
-            <!-- Modal -->
             <div class="modal fade" id="detalleModal" tabindex="-1">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -281,34 +270,28 @@ app.get('/', (req, res) => {
                 </div>
             </div>
             
-            <!-- Footer -->
             <div class="mt-4 text-center text-muted small">
                 <p>Visualizador simple - Neon PostgreSQL</p>
             </div>
         </div>
         
-        <!-- Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // Variables globales
             let paginaActual = 1;
             let totalPaginas = 1;
             let totalRegistros = 0;
             let busqueda = '';
             let limite = 50;
             
-            // Cargar datos al iniciar
             document.addEventListener('DOMContentLoaded', () => {
                 cargarEstadisticas();
                 cargarPacientes();
                 
-                // Enter para buscar
                 document.getElementById('searchInput').addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') buscar();
                 });
             });
             
-            // Cargar estadísticas
             async function cargarEstadisticas() {
                 try {
                     const response = await fetch('/api/estadisticas');
@@ -323,7 +306,6 @@ app.get('/', (req, res) => {
                 }
             }
             
-            // Cargar pacientes
             async function cargarPacientes() {
                 try {
                     mostrarCargando(true);
@@ -349,7 +331,6 @@ app.get('/', (req, res) => {
                 }
             }
             
-            // Mostrar pacientes en tabla
             function mostrarPacientes(pacientes) {
                 const tbody = document.getElementById('pacientesTable');
                 
@@ -366,7 +347,6 @@ app.get('/', (req, res) => {
                 
                 let html = '';
                 pacientes.forEach(p => {
-                    // Usar los nombres reales de columnas de tu base de datos
                     const antecedentes = p.pac_antecedentes ? 
                         \`<div class="antecedentes-cell" title="\${p.pac_antecedentes}">
                             \${p.pac_antecedentes.substring(0, 100)}\${p.pac_antecedentes.length > 100 ? '...' : ''}
@@ -393,7 +373,6 @@ app.get('/', (req, res) => {
                 tbody.innerHTML = html;
             }
             
-            // Ver detalle
             async function verDetalle(id) {
                 try {
                     const response = await fetch(\`/api/paciente/\${id}\`);
@@ -413,7 +392,6 @@ app.get('/', (req, res) => {
             function mostrarModalDetalle(paciente) {
                 const content = document.getElementById('detalleContent');
                 
-                // Usar solo las columnas que realmente existen
                 content.innerHTML = \`
                     <div class="row">
                         <div class="col-md-6">
@@ -447,7 +425,6 @@ app.get('/', (req, res) => {
                 modal.show();
             }
             
-            // Funciones de búsqueda
             function buscar() {
                 busqueda = document.getElementById('searchInput').value;
                 paginaActual = 1;
@@ -461,7 +438,6 @@ app.get('/', (req, res) => {
                 cargarPacientes();
             }
             
-            // Paginación
             function cambiarPagina(delta) {
                 const nuevaPagina = paginaActual + delta;
                 if (nuevaPagina >= 1 && nuevaPagina <= totalPaginas) {
@@ -487,7 +463,6 @@ app.get('/', (req, res) => {
                 document.getElementById('btnNext').disabled = paginaActual === totalPaginas;
             }
             
-            // Utilidades
             function mostrarCargando(mostrar) {
                 const tbody = document.getElementById('pacientesTable');
                 if (mostrar) {
@@ -511,25 +486,13 @@ app.get('/', (req, res) => {
   `);
 });
 
+// ⚠️ CRÍTICO: Exportar para Vercel (sin app.listen)
 module.exports = app;
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`
-  ====================================
-  🚀 SISTEMA SIMPLE INICIADO
-  ====================================
-  📍 URL: http://localhost:${PORT}
-  📊 Tabla: pacientes
-  🔍 Búsquedas: Básicas pero funcionales
-  ⏰ Hora: ${new Date().toLocaleString()}
-  ====================================
-  
-  🔧 Primero verifica tus columnas reales:
-  http://localhost:${PORT}/api/columnas
-  
-  💡 El sistema se adaptará automáticamente
-  a los nombres reales de tus columnas.
-  ====================================
-  `);
-});
+// Solo para desarrollo local
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+  });
+}
