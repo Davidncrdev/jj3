@@ -271,7 +271,7 @@ app.get('/', (req, res) => {
             </div>
             
             <div class="mt-4 text-center text-muted small">
-                <p>Visualizador simple - Neon PostgreSQL</p>
+                <p>Visualizador, por david Nacro - Neon PostgreSQL - Altura creativa©</p>
             </div>
         </div>
         
